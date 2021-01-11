@@ -88,10 +88,28 @@ class Snake(object):
 
 
     def reset(self, pos):
-        pass
+        self.head = Cube(pos)
+        self.body = []
+        self.body.append(self.head)
+        self.turns = {}
+        self.dirx = 0
+        self.diry = 1
 
     def addCube(self):
-        pass
+        tail = self.body[-1]
+        dx, dy = tail.dirx, tail.diry
+
+        if dx == 1 and dy == 0:
+            self.body.append(Cube((tail.pos[0]-1, tail.pos[1])))
+        elif dx == -1 and dy == 0:
+            self.body.append(Cube((tail.pos[0]+1, tail.pos[1])))
+        elif dx == 0 and dy == 1:
+            self.body.append(Cube((tail.pos[0], tail.pos[1]-1)))
+        elif dx == 0 and dy == -1:
+            self.body.append(Cube((tail.pos[0], tail.pos[1]+1)))
+        
+        self.body[-1].dirx = dx
+        self.body[-1].diry = dy
 
     def draw(self, surface):
         for i, c in enumerate(self.body):
@@ -114,28 +132,59 @@ def drawGrid(w, rows, surface):
     pass
 
 def redrawWindow(surface):
-    global rows, width, s
+    global rows, width, s, snack
     surface.fill((0, 0, 0))
     s.draw(surface)
+    snack.draw(surface)
     drawGrid(width, rows, surface)
     pygame.display.update()
     
 
+def randomSnack(rows, item):
+    positions = item.body
+    while True:
+        x = random.randrange(rows)
+        y = random.randrange(rows)
+        if len(list(filter(lambda z:z.pos == (x, y), positions))) > 0:
+            continue
+        else:
+            break
+        return (x, y)
+
+
 def message_box(subject, content):
-    pass
+    root = tk.Tk()
+    root.attributes('-topmost', True)
+    root.withdraw()
+    messagebox.showinfo(subject, content)
+    try:
+        root.destroy()
+    except:
+        pass
 
 def main():
-    global rows, width, s
+    global rows, width, s, snack
     width = 50
     rows = 20
     win = pygame.display.set_mode((width, width))
     s = Snake((255, 0, 0), (10, 10))
+    snack = Cube(randomSnack(rows, s), color = (0, 255, 0))
     flag = True
     clock = pygame.time.Clock()
     while flag:
         pygame.time.delay(50)
         clock.tick(10)
         s.move()
+        if s.body[0].pos == snack.pos:
+            s.addCube()
+            snack = Cube(randomSnack(rows, s), color = (0, 255, 0))
+        for x in range(len(s.body)):
+            if s.body[x].pos in list(map(lambda z:z.pos, s.body[x+1:])):
+                print('Score: ', len(s.body))
+                message_box('You lost!', 'Play again...')
+                s.reset((10, 10))
+                break
+
         redrawWindow(win)
     
 
